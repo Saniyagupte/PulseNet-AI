@@ -6,6 +6,7 @@ import json
 import logging
 from fastapi import FastAPI
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+from .inference import predict as model_predict
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,27 +22,7 @@ GROUP_ID = os.getenv("GROUP_ID", "inference-group")
 app = FastAPI()
 
 
-async def dummy_predict(event: dict) -> dict:
-    """
-    Simple placeholder for model inference.
-    Replace this with a real model call (PyTorch/TensorFlow/ONNX/Triton) later.
-    """
-    value = float(event.get("value", 0))
-    measurement = event.get("measurement", "")
-
-    if measurement == "heart_rate":
-        if value > 120:
-            label = "tachycardia"
-        elif value < 50:
-            label = "bradycardia"
-        else:
-            label = "normal"
-        score = min(max((value - 50) / 100, 0), 1)
-    else:
-        label = "anomaly" if value > 0.9 else "normal"
-        score = value
-
-    return {"label": label, "score": score}
+infer = model_predict(event)
 
 
 async def run_consumer_loop():
@@ -81,7 +62,14 @@ async def startup():
 async def health():
     return {"status": "ok"}
 
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
+consumer = AIOKafkaConsumer(
+    "events.raw",
+    bootstrap_servers=KAFKA_BOOTSTRAP,
+    group_id="inference-group"
+)
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8001)
+
