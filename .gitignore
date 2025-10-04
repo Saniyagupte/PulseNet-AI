@@ -1,3 +1,10 @@
+<<<<<<< HEAD
 venv/
 **/__pycache__/
 *.pyc
+=======
+
+
+# Ignore the Word document
+word.docx
+>>>>>>> 25d2825 (second commit)
