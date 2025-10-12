@@ -50,6 +50,20 @@ services:
       NEO4J_AUTH: "neo4j/neo4j"
     volumes:
       - neo4j_data:/data
+  
+  producer-service:
+    build: ../services/producer-service
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9092
 
 volumes:
   neo4j_data:
+
+  producer-service:
+    build: ../services/producer-service
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9092
