@@ -1,26 +1,26 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-const driver = require("./db");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const patientRoutes = require("./routes/patientRoutes");
 
 const app = express();
-app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 
-app.get("/patients/:id/events", async (req, res) => {
-  const session = driver.session();
-  try {
-    const result = await session.run(
-      `MATCH (p:Patient {id: $id})-[:HAS_EVENT]->(e:Event)
-       RETURN e ORDER BY e.timestamp`,
-      { id: req.params.id }
-    );
-    const events = result.records.map(r => r.get("e").properties);
-    res.json(events);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  } finally {
-    await session.close();
-  }
+app.use("/api/patients", patientRoutes);
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Graph service running on port ${PORT}`));
+io.on("connection", (socket) => {
+  console.log("Dashboard connected:", socket.id);
+});
+
+// Expose io globally so Kafka consumer can emit events
+global.io = io;
+
+const PORT = process.env.PORT || 5005;
+server.listen(PORT, () => console.log(`Graph API running on port ${PORT}`));
